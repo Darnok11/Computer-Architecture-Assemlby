@@ -1,0 +1,725 @@
+# -------------------------------------------------------------------------------
+# author: Konrad Grzyb
+# data : 2019.01.08 
+# description : 	3.15  Binary turtle graphics ? version 1
+# url: http://galera.ii.pw.edu.pl/~zsz/ecoar/ecoar_mips_projects_2018-2.pdf
+
+# TODO:
+
+# -------------------------------------------------------------------------------
+
+# only 24-bits 600x50 pixels BMP files are supported
+.eqv BMP_FILE_SIZE 90122
+.eqv BIN_FILE_SIZE 1000	# size which determine number of commands (how complex image may be)
+.eqv BYTES_PER_ROW 1800
+# TEST
+# .eqv BMP_FILE_SIZE 10 # for bmp size testing
+# .eqv BIN_FILE_SIZE 10 # for bin size testing
+
+	.data
+setpos_msg:	.asciiz	"\n setpos "
+setdir_msg:	.asciiz	"\n setdir "
+draw_msg:	.asciiz	"\n draw "
+setpen_msg:	.asciiz	"\n setpen "
+
+open_error_msg:	.asciiz 	"\n Error:  can not open file\n"
+read_error_msg:	.asciiz 	"\n Error:  can not read file\n"
+saving_file_msg:	.asciiz 	"\n Worning: Saving file... \n"
+bmp_error_msg:	.asciiz 	"\n Error:  Wrong BMP file\n"
+bin_error_msg:	.asciiz 	"\n Error:  Wrong BIN file\n"
+
+x_worning_msg:	.asciiz 	"\n Worning:  X is out of area\n"
+y_worning_msg:	.asciiz 	"\n Worning:  Y is out of area\n"
+
+
+
+#  space for the 600x50px 24-bits bmp image (width w = 600px, height h = 50px)
+.align 4
+res:		.space 2
+bin_buff:	.space BIN_FILE_SIZE
+bmp_buff:	.space BMP_FILE_SIZE
+
+# TESTS: + tested - not tested
+
+# bin_name:	.asciiz "tests/3-15-turtle_1/3-15-turtle_1.bin" # +
+# bmp_name:	.asciiz "tests/3-15-turtle_1/3-15-turtle_1.bmp" # +
+
+# bin_name:	.asciiz "tests/area/00.bin" # +
+# bmp_name:	.asciiz "tests/area/00.bmp" # +
+# bin_name:	.asciiz "tests/area/01.bin" # +
+# bmp_name:	.asciiz "tests/area/01.bmp" # +
+# bin_name:	.asciiz "tests/area/02.bin" # +
+# bmp_name:	.asciiz "tests/area/02.bmp" # +
+# bin_name:	.asciiz "tests/area/03.bin" # +
+# bmp_name:	.asciiz "tests/area/03.bmp" # +
+# bin_name:	.asciiz "tests/area/10.bin" # +
+# bmp_name:	.asciiz "tests/area/10.bmp" # +
+# bin_name:	.asciiz "tests/area/11.bin" # +
+# bmp_name:	.asciiz "tests/area/11.bmp" # +
+# bin_name:	.asciiz "tests/area/12.bin" # +
+# bmp_name:	.asciiz "tests/area/12.bmp" # +
+# bin_name:	.asciiz "tests/area/13.bin" # +
+# bmp_name:	.asciiz "tests/area/13.bmp" # +
+# bin_name:	.asciiz "tests/area/setX.bin" # +
+# bmp_name:	.asciiz "tests/area/setX.bmp" # +
+# bin_name:	.asciiz "tests/area/setY.bin" # +
+# bmp_name:	.asciiz "tests/area/setY.bmp" # +
+# bin_name:	.asciiz "tests/area/setXY.bin" # +
+# bmp_name:	.asciiz "tests/area/setXY.bmp" # +
+
+
+# for random use bash/cmd/ command:
+# dd if=/dev/urandom of=random.bin bs=60 count=1
+# bin_name:	.asciiz "tests/random/random1.bin" # +
+# bmp_name:	.asciiz "tests/random/random1.bmp" # +
+# bin_name:	.asciiz "tests/random/random2.bin" # +
+# bmp_name:	.asciiz "tests/random/random2.bmp" # +
+# bin_name:	.asciiz "tests/random/random3.bin" # +
+# bmp_name:	.asciiz "tests/random/random3.bmp" # +
+# bin_name:	.asciiz "tests/random/random4.bin" # +
+# bmp_name:	.asciiz "tests/random/random4.bmp" # +
+# bin_name:	.asciiz "tests/random/random5.bin" # +
+# bmp_name:	.asciiz "tests/random/random5.bmp" # +
+# bin_name:	.asciiz "tests/random/random6.bin" # +
+# bmp_name:	.asciiz "tests/random/random6.bmp" # +
+# bin_name:	.asciiz "tests/random/random7.bin" # +
+# bmp_name:	.asciiz "tests/random/random7.bmp" # +
+# bin_name:	.asciiz "tests/random/random8.bin" # +
+# bmp_name:	.asciiz "tests/random/random8.bmp" # +
+# bin_name:	.asciiz "tests/random/random9.bin" # +
+# bmp_name:	.asciiz "tests/random/random9.bmp" # +
+# bin_name:	.asciiz "tests/random/random10.bin" # +
+# bmp_name:	.asciiz "tests/random/random10.bmp" # +
+# bin_name:	.asciiz "tests/random/random11.bin" # +
+# bmp_name:	.asciiz "tests/random/random11.bmp" # +
+# bin_name:	.asciiz "tests/random/random12.bin" # +
+# bmp_name:	.asciiz "tests/random/random12.bmp" # +
+
+# bin_name:	.asciiz "tests/bmp_header/input.bin" # +
+# bmp_name:	.asciiz "tests/bmp_header/B.bmp" # +
+# bmp_name:	.asciiz "tests/bmp_header/M.bmp" # +
+# bin_name:	.asciiz "tests/file_name/input.bin" # +
+# bin_name:	.asciiz "tests/file_size/input.bin" # +
+# bin_name:	.asciiz "tests/random/input.bin" # -
+# bmp_name:	.asciiz "source.bmp"
+
+
+
+
+
+	.text
+main: # forward reference
+
+	jal	read_bmp_file
+
+	jal	read_bin_file	# return characters read
+	move	$a0, $v0
+	jal 	perform_bin_commands
+
+	jal	save_bmp
+
+# successfull exit
+exit:	li 	$v0, 10		#  Terminate the program
+	syscall
+
+
+
+
+# ============================================================================
+read_bmp_file:
+#  description:
+# 	reads the contents of a file into memory.
+#  arguments: none
+#  return value:
+# 	v0 - the number of characters read - the length of file
+
+	addiu 	$sp, $sp, -12
+	sw  	$ra, 8($sp)	# push $ra to the stack
+	sw  	$s1, 4($sp)	# push $s1 for file descriptor
+	sw  	$s2, 0($sp)	# push $s2 to store return value
+
+
+#  syscall - 13 - open file
+	li 	$v0, 13		# $v0 contains file descriptor (negative if error).
+	la 	$a0, bmp_name	# address of null-terminated string containing filename
+	li 	$a1, 0		# 0 - flag
+	li 	$a2, 0		# 0 - mode
+	syscall
+
+	move 	$s1, $v0 	# save the file descriptor
+
+	bgtz 	$v0, no_bmp_open_error	# check error
+	# there is problem with opening this file :(
+	li	$v0, 4
+	la	$a0, open_error_msg
+	syscall
+	b	close_file_error
+	# NOTE: Dont know if after problem with opening there is sence for closing file
+
+
+no_bmp_open_error:
+#  syscall - 14 - read file
+	li	$v0, 14		# $v0 contains number of characters read (0 if end-of-file, negative if error).
+	move	$a0, $s1 	# file descriptor
+	la	$a1, bmp_buff 	# @ of input buffer
+	li	$a2, BMP_FILE_SIZE 	# maximum number of characters to read
+	syscall
+	bgtz 	$v0, no_bmp_read_error	# check error
+	# there is problem with reading this file :(
+	li	$v0, 4
+	la	$a0, read_error_msg
+	syscall
+	b	close_file_error
+
+no_bmp_read_error:
+
+# save number of characters
+	move 	$s2, $v0
+
+#  syscall - 16 - close file successfully:
+	li	$v0, 16
+	move	$a0, $s1 	# a0 - file
+	syscall
+
+# check BMP header:
+	lb	$s1, bmp_buff
+	beq	$s1, 'B', no_B_header_error
+	# there is problem with BMP header :(
+	li	$v0, 4
+	la	$a0, bmp_error_msg
+	syscall
+	b	exit
+no_B_header_error:
+	lb	$s1, bmp_buff + 1
+	beq	$s1, 'M', change_stack_read	# if there is no header problem
+	# there is problem with BMP header :(
+	li	$v0, 4
+	la	$a0, bmp_error_msg
+	syscall
+	b	exit
+
+# ============================================================================
+read_bin_file:
+#  description:
+# 	reads the contents of a binary file into memory.
+#  arguments: none
+#  return value:
+# 	v0 - the number of characters read - the length of file
+
+	addiu 	$sp, $sp, -12
+	sw  	$ra, 8($sp)	# push $ra to the stack
+	sw  	$s1, 4($sp)	# push $s1 for file descriptor
+	sw  	$s2, 0($sp)	# push $s2 to store return value
+
+
+#  syscall - 13 - open file
+	li 	$v0, 13		# $v0 contains file descriptor (negative if error).
+	la 	$a0, bin_name	# address of null-terminated string containing filename
+	li 	$a1, 0		# 0 - flag
+	li 	$a2, 0		# 0 - mode
+	syscall
+
+	move 	$s1, $v0 	# save the file descriptor
+
+	bgtz 	$v0, no_bin_open_error	# check error
+	# there is problem with opening this file :(
+	li	$v0, 4
+	la	$a0, open_error_msg
+	syscall
+	b	close_file_error
+	# NOTE: Dont know if after problem with opening there is sence for closing file
+
+
+no_bin_open_error:
+#  syscall - 14 - read file
+	li	$v0, 14		# $v0 contains number of characters read (0 if end-of-file, negative if error).
+	move	$a0, $s1 	# file descriptor
+	la	$a1, bin_buff 	# @ of input buffer
+	li	$a2, BIN_FILE_SIZE 	# maximum number of characters to read
+	syscall
+	bgtz 	$v0, close_file	# check error
+	# there is problem with reading this file :(
+	li	$v0, 4
+	la	$a0, read_error_msg
+	syscall
+	b	close_file_error
+
+
+# ----------------------------------------------------------------------------
+close_file:
+	move 	$s2, $v0 	# save number of characters
+
+#  syscall - 16 - close file successfully:
+	li	$v0, 16
+	move	$a0, $s1 	# a0 - file
+	syscall
+
+	move 	$v0, $s2		# return number of characters read
+
+change_stack_read:
+	lw  	$s2, 0($sp)	#  crestore $s2
+	lw  	$s1, 4($sp)	#  crestore $s1
+	lw  	$ra, 8($sp)	#  pop $ra from stack
+	addiu 	$sp, $sp, 12
+
+	jr	$ra
+
+# ----------------------------------------------------------------------------
+close_file_error:
+#  syscall - 16 - close file unsuccessfully
+	li	$v0, 16
+	move	$a0, $s1 	# a0 - file
+	syscall
+# change stack
+	lw  	$s2, 0($sp)	#  pop $s2 for return value
+	lw  	$s1, 4($sp)	#  pop $s1 for file descriptor
+	lw  	$ra, 8($sp)	#  pop $ra from the stack
+	addiu 	$sp, $sp, 12
+
+	b	exit
+
+#  ============================================================================
+save_bmp:
+#  description:
+# 	saves bmp file stored in memory to a file
+#  arguments:
+# 	none
+#  return value: none
+	sub	$sp, $sp, 4	#  push $ra to the stack
+	sw	$ra, 4($sp)
+	sub	$sp, $sp, 4	#  push $s1
+	sw	$s1, 4($sp)
+
+#  open file
+	li	$v0, 13
+	la	$a0, bmp_name	#  file name
+	li	$a1, 1		#  flags: 1-write file
+	li	$a2, 0		#  mode: ignored
+	syscall
+
+	move	$s1, $v0      	#  save the file descriptor
+
+	bgtz 	$v0, no_bmp_open_to_save_error	# check error
+	# there is problem with opening this file :(
+	li	$v0, 4
+	la	$a0, open_error_msg
+	syscall
+	b	close_file_error
+	# NOTE: Dont know if after problem with opening there is sence for closing file
+
+no_bmp_open_to_save_error:
+#  save file
+
+	la	$a0, saving_file_msg
+	li	$v0, 4
+	syscall
+
+	li	$v0, 15
+	move	$a0, $s1
+	la	$a1, bmp_buff
+	li	$a2, BMP_FILE_SIZE
+	syscall
+
+#  close file
+	li	$v0, 16
+	move	$a0, $s1
+	syscall
+
+	lw	$s1, 4($sp)	#  crestore (pop) $s1
+	add	$sp, $sp, 4
+	lw	$ra, 4($sp)	#  restore (pop) $ra
+	add	$sp, $sp, 4
+	jr	$ra
+
+
+
+
+
+
+
+#  ============================================================================
+put_pixel:
+# description:
+# 	sets the color of specified pixel.
+# 	INTERNAL FUNCTION
+# arguments:
+# 	$a0 - x coordinate
+# 	$a1 - y coordinate - (0,0) - bottom left corner
+# 	$a2 - 0RGB - pixel color
+# return value: none
+
+
+	sw	$ra, 4($sp)
+
+	la	$t1, bmp_buff + 10	#  adress of file offset to pixel array. The offset, i.e. starting address, of the byte where the bitmap image data (pixel array) can be found.
+	lw	$t2, ($t1)	#  file offset to pixel array in $t2
+	la	$t1, bmp_buff	#  adress of bitmap
+	add	$t2, $t1, $t2	#  adress of pixel array in $t2
+
+	#  pixel address calculation
+	mul	$t1, $a1, BYTES_PER_ROW	#  t1= y*BYTES_PER_ROW
+	move	$t3, $a0
+	sll	$a0, $a0, 1	#  set a0 shifting logical prev a0 by 1 bit
+	add	$t3, $t3, $a0	#  $t3= 3*x
+	add	$t1, $t1, $t3	#  $t1 = 3x + y*BYTES_PER_ROW
+	add	$t2, $t2, $t1	#  pixel address in t2
+
+	# set new color
+	sb	$a2,($t2)	#  store B
+	srl	$a2,$a2,8
+	sb	$a2,1($t2)	#  store G
+	srl	$a2,$a2,8
+	sb	$a2,2($t2)	#  store R
+
+
+	lw	$ra, 4($sp)
+	jr	$ra
+
+#  ============================================================================
+setpos:
+# description:
+# 	INTERNAL FUNCTION
+# 	Set position of turtle. Assign X and Y. Check area condition. The set position command sets the new coordinates of the turtle. It consists of two words. The first word defines the command (bits 15-14). The point (0,0) is located in the bottom left corner of the image. The second word contains the X (bits x9-x0) and Y (bits y5-y0) coordinates of the new position.
+# arguments:
+#	a0 - first command word
+# 	a1 - second command word
+# return value:
+#	s0 - X
+#	s1 - Y
+
+setpos_flag:
+	li	$t2, 1		# if this is command to setpos rise flag to take next command with X,Y
+	b	next_command
+
+setpos_XY:
+	andi	$s0, $a0, 3	# 0000 0011 x a0
+	sll	$s0, $s0, 8	# shift to add
+	addu	$s0, $s0, $a1	# X in s0 = 11 0000 0000 + a1
+
+	srl	$s1, $a0, 2	# Y in s1 = 2 >> a0
+
+	la	$a0, setpos_msg
+	li	$v0, 4
+	syscall
+
+
+	li	$a0, '('
+	li	$v0, 11
+	syscall
+
+	add	$a0, $s0, $zero	# print evaluated X
+	li	$v0, 1
+	syscall
+
+	li	$a0, ','
+	li	$v0, 11
+	syscall
+
+	add	$a0, $s1, $zero	# print evaluated Y
+	li	$v0, 1
+	syscall
+
+	li	$a0, ')'
+	li	$v0, 11
+	syscall
+
+	add	$a0, $s0, $zero	# X
+	add	$a1, $s1, $zero	# Y
+	jal	in_area		# check if position is in area
+	bgtz	$v0, break
+
+	li	$t2, 0		# negate setpos command flag
+	b	next_command
+
+# check inarea return value for given position
+
+#  ============================================================================
+setdir:
+#  description:
+# 	INTERNAL FUNCTION
+# 	The set direction command sets the direction in which the turtle will move, when a draw command is issued. The direction "dir" is defined by the d1, d0 bits. 00 - right, 01 - up, 10 - left, 11 - down. Function will estimate if to perform adding or substracting to X or to Y.
+# arguments:
+	# a1 - second half of command for setting up direction
+# return value:
+	# s2 - direction
+
+	andi	$s2, $a1, 3	# from second word 0000 0011
+
+	la	$a0, setdir_msg
+	li	$v0, 4
+	syscall
+
+	move	$a0, $s2
+	li	$v0, 1
+	syscall
+
+
+	b	next_command
+
+
+#  ============================================================================
+setpen:
+#  description:
+# 	INTERNAL FUNCTION
+# 	The pen state command defines whether the pen is raised or lowered "draw" (bit ud) and the color of the trail. Bits r3-r0 are the most significant bits of the 8-bits red component of the color (remaining bits are set to zero). Bits g3-g0 are the most significant bits of the 8-bits green component of the color (remaining bits are set to zero). Bits b3-b0 are the most significant bits of the 8-bits blue component of the color (remaining bits are set to zero).
+# arguments:
+	# a0 - first half of command for setting up pen
+	# a1 - second half of command for setting up pen
+# return values:
+	# s3 - pen up or down
+	# s4 - color R, G, B
+
+	move 	$t3, $a0
+
+	srl	$s3, $t3, 5 	# 0010 0000
+	andi	$s3, $s3, 1	# 0000 0001
+
+
+	la	$a0, setpen_msg
+	li	$v0, 4
+	syscall
+
+	move	$a0, $s3
+	li	$v0, 1
+	syscall
+
+	beqz	$s3, next_command	# if pen is down do not store color
+
+	sw	$t0, 16($sp)
+	sw	$t1, 12($sp)
+	sw	$t2, 8($sp)
+
+	move 	$t1, $a1
+
+	# set color - 00RRGGBB - 0000 0000 | 1111 1111 | 1111 1111 | 1111 1111
+
+	andi	$t2, $t1, 15	# take red from second half command - 0f
+	sll	$t5, $t2, 16	# shift on first right place
+	sll	$t2, $t2, 20	# shift on second right place
+	addu	$t2, $t2, $t5	# double it
+	# t2 - RED
+
+	srl	$t4, $t1, 4	# take green from second half command - f0
+	sll	$t5, $t4, 8	# shift on first right place
+	sll	$t4, $t4, 12	# shift on second right place
+	addu	$t4, $t4, $t5	# double it
+	# t4 - GREEN
+
+	andi	$t0, $t3, 15	# take red from second half command - 0f
+	sll	$t5, $t0, 4	# shift on second right place
+	addu	$t0, $t0, $t5	# double it
+	# t0 - BLUE
+
+	addu	$s4, $t4, $t2	# s4 = red + green
+	addu	$s4, $s4, $t0	# s4 = s4 + blue
+
+	# print info
+
+	li	$a0, ' '
+	li	$v0, 11
+	syscall
+
+	move	$a0, $s4
+	li	$v0, 34
+	syscall
+
+
+	lw	$t2, 8($sp)
+	lw	$t1, 12($sp)
+	lw	$t0, 16($sp)
+
+	b	next_command
+
+
+
+#  ============================================================================
+draw:
+# description:
+# 	INTERNAL FUNCTION
+# 	The draw command moves the turtle in direction specified by the d1-d0 bits. The movement distance is defined by the m9-m0 bits. If the destination point is located beyond the drawing area  the  turtle  should  stop  at  the  edge  of  the  drawing.  It  can?t  leave  the  drawing  area.  The turtle leaves a visible trail when the pen is lowered (bit ud). The color of the trail is defined by the r3-r0, g3-g0, b3-b0 bits.
+# 	Function will cos seting new positon of X and Y and change pixel colors if pen is down
+# arguments:
+#	a0 - first command word
+# 	a1 - second command word
+	# s0 - X / 10 bits
+	# s1 - Y / 6 bits
+	# s2 - direction / 2 bits
+	# s3 - pen up or down
+	# s4 - color R, G, B / 4 bits every color
+# return value:
+	# s5 - distance / 10 bits
+
+
+	sw	$t2, 16($sp)
+	sw	$t1, 12($sp)
+	sw	$t0, 8($sp)
+
+	move 	$t0, $a0
+	move 	$t1, $a1
+
+	andi	$s5, $t0, 3	# take first 2 bits from a0
+	sll	$s5, $s5, 8	# shift to get 11 0000 0000 to add
+	addu	$s5, $s5, $t1	# distance in s5
+
+
+	move 	$t0, $s5		# set pixel counter
+
+	bgtz	$s3, next_pixel	# if pen is down, s3 = 1, draw
+
+	bgtz	$s2, skip_00
+	addu	$s0, $s0, $s5	# if dir = 0, go right, x = x + dist
+skip_00:
+	bne	$s2, 1, skip_01
+	addu	$s1, $s1, $s5	# if dir = 1, go up, y = y + dist
+skip_01:
+	bne	$s2, 2, skip_02
+	subu	$s0, $s0, $s5	# if dir = 2, go left, x = x - dist
+skip_02:
+	bne	$s2, 3, skip_0	# unfortunatelly I need this condition
+	subu	$s1, $s1, $s5	# if dir = 3, go down, y = y - dist
+skip_0:
+
+	add	$a0, $s0, $zero
+	add	$a1, $s1, $zero
+	jal	in_area		# check if position is in_area
+
+	bgtz	$v0, break
+
+	li	$t0, 0		# substruct counter
+
+next_pixel:
+	beqz	$t0, no_pixels_to_draw
+
+	bgtz	$s2, skip_10
+	addiu	$s0, $s0, 1	# if dir = 0, go right, x++
+skip_10:
+	bne	$s2, 1, skip_11
+	addiu	$s1, $s1, 1	# if dir = 1, go up, y++
+skip_11:
+	bne	$s2, 2, skip_12
+	subiu	$s0, $s0, 1	# if dir = 2, go left, x--
+skip_12:
+	bne	$s2, 3, skip_1	# unfortunatelly I need this condition
+	subiu	$s1, $s1, 1	# if dir = 3, go down, y--
+skip_1:
+	move	$a0, $s0		# x
+	move	$a1, $s1		# y
+	jal	in_area		# check if position is in_area
+
+	bgtz	$v0, break
+
+	move	$a0, $s0		# x
+	move	$a1, $s1		# y
+	move 	$a2, $s4		# color - 00RRGGBB
+	jal	put_pixel
+
+	subiu	$t0, $t0, 1	# substruct counter
+
+	b	next_pixel
+no_pixels_to_draw:
+
+	la	$a0, draw_msg
+	li	$v0, 4
+	syscall
+
+	move	$a0, $s5
+	li	$v0, 1
+	syscall
+
+	lw	$t0, 8($sp)
+	lw	$t1, 12($sp)
+	lw	$t2, 16($sp)
+
+	b	next_command
+
+
+#  ============================================================================
+in_area:
+# description:
+# 	INTERNAL FUNCTION
+# 	check if given position is in area of 50x600
+# arguments:
+#	a0 - X
+#	a1 - Y
+# return value:
+#	v0 - if v0 > 0 point is outside area
+
+	sw	$ra, 4($sp)
+	sw	$s0, 8($sp) 	# store for return value
+
+	li	$s0, 0		# set return value
+
+	bltz	$a0, x_is_not_ok	# if x > 0
+	sub	$t3, $a0, 600	# if x < 600 <=> x - 600 < 0
+	bltz	$t3, x_is_ok
+x_is_not_ok:
+	la	$a0, x_worning_msg
+	li	$v0, 4
+	syscall
+	addiu	$s0, $s0, 1	# rise flag
+x_is_ok:
+
+
+	bltz	$a1, y_is_not_ok	# if y > 0
+	sub	$t3, $a1, 50	# if y < 50 <=> y - 50 < 0
+	bltz	$t3, y_is_ok
+y_is_not_ok:
+	la	$a0, y_worning_msg
+	li	$v0, 4
+	syscall
+	addiu	$s0, $s0, 1	# rise flag
+y_is_ok:
+
+	move	$v0, $s0
+	lw	$s0, 8($sp)
+	lw	$ra, 4($sp)
+	jr	$ra
+
+#  ============================================================================
+perform_bin_commands:
+#  description:
+# 	interprete binary file commands. Check all parameters to call particular funciton like setpos, setpen, setdir and draw. When calling funciton draw, put_pixel or note at given pixel array positon.
+#  arguments:
+	# a0 - number of characters read from file
+#  return value: none
+
+	# default paramiters are:
+	li	$s0, 0		# X
+	li	$s1, 0		# Y
+	li	$s2, 0
+	li	$s3, 1		# pen is down
+	li	$s4, 0		# black
+	li	$s5, 0		# distance is 0
+
+	move	$t0, $a0
+
+	addi	$sp, $sp, -20	# design stack: ra0, ra1, t0, t1, t2 = 20
+	sw	$ra,  0($sp)	# push $ra to the stack
+
+	la	$t1, bin_buff
+	li	$t2, 0		# flag for detecting setpos command
+
+loop:
+	beqz	$t0, break	# if all bytes interpreted break
+	lbu 	$a0, 0($t1)	# load first half of command
+	lbu 	$a1, 1($t1)	# load second half of command
+
+	srl	$t3, $a0, 6	# check first two bits of a0
+
+	bgtz	$t2, setpos_XY	# if t2>0 this is the command with XY to set positon
+	beqz	$t3, setpos_flag	# command - 0
+	beq	$t3, 1, setdir	# command - 1
+	beq	$t3, 2, draw	# command - 2
+	beq	$t3, 3, setpen	# command - 3
+
+next_command:
+	subiu	$t0, $t0, 2	# decrement counter
+	addiu	$t1, $t1, 2	# increment byte pointer
+	b	loop
+
+break:
+
+	lw	$ra, 0($sp)	#  restore (pop) $ra
+	addi	$sp, $sp, 20
+	jr	$ra
+#  ============================================================================
